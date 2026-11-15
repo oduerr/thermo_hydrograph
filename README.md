@@ -58,7 +58,7 @@ Speicherbedarf: etwa 45 Byte pro Messung, also rund 400 KB pro Jahr. Frei sind e
 Das Board hat keine Uhr mit Batterie. Die Zeit (UTC) kommt aus einer dieser Quellen:
 
 1. **Vom PC:** `./board.sh zeit` oder `./board.sh aufspielen`. Die Zeit übersteht einen Reset, aber keinen Stromausfall.
-2. **Per WLAN (NTP):** Wenn `secrets.py` auf dem Board liegt. Die Uhr wird beim Start und einmal am Tag nachgestellt.
+2. **Vom Handy:** beim Aufruf der Webseite (siehe unten).
 
 Ist die Zeit unbekannt, steht in der CSV `unbekannt`. Die Spalte `laufzeit_min` (Minuten seit dem letzten Neustart) erlaubt es, die Zeit nachträglich zu rekonstruieren.
 
@@ -67,7 +67,7 @@ Ist die Zeit unbekannt, steht in der CSV `unbekannt`. Die Spalte `laufzeit_min` 
 Voraussetzung: `pip install mpremote`. Das Board ist per USB angeschlossen.
 
 ```bash
-./board.sh aufspielen   # main.py (und ggf. secrets.py) aufs Board, Uhr stellen
+./board.sh aufspielen   # Programm (und ggf. secrets.py) aufs Board, Uhr stellen
 ./board.sh zeit         # nur Uhr stellen
 ./board.sh auslesen     # CSV nach daten/messdaten_<datum>.csv kopieren
 ./board.sh live         # Ausgabe des Boards live ansehen (Ende: Ctrl-X)
@@ -76,8 +76,16 @@ Voraussetzung: `pip install mpremote`. Das Board ist per USB angeschlossen.
 
 Jeder Befehl unterbricht das Messprogramm kurz und startet es danach neu.
 
-## WLAN (optional)
+## WLAN-Hotspot und Webseite
 
-`secrets.example.py` nach `secrets.py` kopieren, die WLAN-Daten eintragen und dann `./board.sh aufspielen` ausführen. Das funktioniert nur mit WPA2-Personal, also einem normalen WLAN mit Passwort. Mit eduroam oder WPA2-Enterprise und mit Anmeldeseiten im Browser klappt es nicht.
+Das Board öffnet ein eigenes WLAN. Über das Handy kann man damit die Daten abrufen, ohne Laptop und ohne Schul-WLAN.
 
-Ein Upload der Messwerte (zum Beispiel in ein Google Sheet oder zu ThingSpeak) ist noch nicht eingebaut.
+1. `secrets.example.py` nach `secrets.py` kopieren, Netzname und Passwort (mindestens 8 Zeichen) eintragen und `./board.sh aufspielen` ausführen. `secrets.py` wird nicht eingecheckt.
+2. Das Handy mit dem WLAN verbinden. Die Meldung „Kein Internet“ mit „Verbunden bleiben“ bestätigen.
+3. Im Browser `http://192.168.4.1` öffnen.
+
+Die Seite zeigt die aktuellen Werte und den Verlauf und bietet die CSV zum Herunterladen an. Beim Öffnen schickt das Handy seine Uhrzeit mit. Weicht die Uhr des Boards um mehr als 30 Sekunden ab, wird sie gestellt. In der CSV steht dann die Zeile `# Uhr vom Handy gestellt …`. Nach einem Stromausfall reicht deshalb ein Besuch mit dem Handy, und die Uhr stimmt wieder.
+
+Die Reichweite im Gebäude liegt bei etwa 10 bis 30 m.
+
+**Chrome auf Android** erreicht die Seite oft nicht. Es versucht https oder schickt die Anfrage über die mobilen Daten. Abhilfe: Opera oder Firefox verwenden, oder in Chrome „Immer sichere Verbindungen verwenden“ ausschalten und die mobilen Daten deaktivieren.

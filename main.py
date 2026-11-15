@@ -3,8 +3,9 @@
 #  - Jede Stunde: Mittelwert aus 3 Messungen -> /messdaten.csv (Zeit in UTC)
 #  - Alle 5 Sekunden: aktueller Wert auf dem LCD (16x2, I2C), Ortszeit Berlin
 #
-# Optional: Wenn eine Datei secrets.py mit WLAN_SSID und WLAN_PASSWORT
-# auf dem Board liegt, holt sich das Board die Uhrzeit per NTP.
+#  - Optional: eigener WLAN-Hotspot mit Webseite (siehe web.py). Name und
+#    Passwort stehen in secrets.py (AP_NAME, AP_PASSWORT). Beim Aufruf der
+#    Seite stellt das Handy die Uhr des Boards.
 
 import time
 import dht
@@ -86,29 +87,35 @@ def ortszeit():
     return "%02d:%02d" % (h, mi)
 
 
-def wlan_zeit_holen():
-    """Versucht, per WLAN die Uhrzeit (UTC) zu holen. Ohne secrets.py: nichts tun."""
+def web_starten():
+    """Startet Hotspot und Webserver, wenn secrets.py vorhanden ist."""
     try:
         import secrets
+        import web
     except ImportError:
-        return False
+        print("Kein secrets.py: ohne Hotspot")
+        return None
     try:
-        import network
-        import ntptime
-        wlan = network.WLAN(network.STA_IF)
-        wlan.active(True)
-        if not wlan.isconnected():
-            wlan.connect(secrets.WLAN_SSID, secrets.WLAN_PASSWORT)
-            for _ in range(30):
-                if wlan.isconnected():
-                    break
-                time.sleep(1)
-        if wlan.isconnected():
-            ntptime.settime()
-            return True
+        ip = web.hotspot_starten(secrets.AP_NAME, secrets.AP_PASSWORT)
+        print("Hotspot", secrets.AP_NAME, "unter http://%s" % ip)
+        return web.Server(web_status, DATEI, uhr_gestellt)
     except Exception as e:
-        print("WLAN/NTP Fehler:", e)
-    return False
+        print("Hotspot-Fehler:", e)
+        return None
+
+
+def uhr_gestellt(alt):
+    vorher = "unbekannt"
+    if alt >= 757382400:                    # 2024-01-01 in MicroPython-Zeit
+        vorher = "%04d-%02d-%02dT%02d:%02d:%02dZ" % time.localtime(alt)[:6]
+    zeile_schreiben("# Uhr vom Handy gestellt %s (vorher %s)" % (zeitstempel(), vorher))
+
+
+def web_status():
+    w = _letzter
+    return {"t": w[0] if w else None, "f": w[1] if w else None,
+            "anzahl": anzahl, "zeit": zeitstempel(),
+            "laufzeit_min": time.ticks_diff(time.ticks_ms(), _start) // 60000}
 
 
 def einzelmessung():
@@ -166,9 +173,6 @@ def speichern(start):
         print(zeitstempel(), "T=%.1f C  RH=%.1f %%" % (t, rh))
         blink((0, 40, 0))                    # gruen: Messung ok
     anzahl += 1
-    # Einmal am Tag die Uhrzeit nachstellen (falls WLAN vorhanden)
-    if laufzeit_min // 60 % 24 == 23:
-        wlan_zeit_holen()
     return wert
 
 
@@ -191,13 +195,16 @@ def anzeige_aktualisieren(wert):
     anzeigen(zeile1, "%s   Nr.%5d" % (ortszeit(), anzahl))
 
 
+_start = time.ticks_ms()
+
+
 def main():
     anzeigen("Thermo-Hygro", "startet ...")
     datei_vorbereiten()
     blink((0, 0, 40), 500)                   # blau: Start
-    wlan_zeit_holen()
+    server = web_starten()
     zeile_schreiben("# Neustart %s" % zeitstempel())
-    start = time.ticks_ms()
+    start = _start
     naechste = start
     while True:
         # Takt ueber die interne Laufzeit, damit ein Uhr-Nachstellen nicht stoert
@@ -206,7 +213,10 @@ def main():
             naechste = time.ticks_add(naechste, INTERVALL_S * 1000)
         else:
             anzeige_aktualisieren(einzelmessung())
-        time.sleep(ANZEIGE_S)
+        if server:
+            server.warten(ANZEIGE_S * 1000)  # Webseite bedienen, bis Display dran ist
+        else:
+            time.sleep(ANZEIGE_S)
 
 
 main()
