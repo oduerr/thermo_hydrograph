@@ -32,7 +32,11 @@ Display (optional):
 | SDA | GPIO 8 |
 | SCL | GPIO 9 |
 
-Ist die Schrift nicht zu sehen, den Kontrast am blauen Drehregler des Adapters einstellen.
+Ist die Schrift nicht zu sehen, den Kontrast am blauen Drehregler des Adapters einstellen. Den Regler langsam über den ganzen Bereich drehen, die richtige Stellung ist schmal.
+
+Das Display ist eigentlich für 5 V gebaut. Mit 3,3 V funktioniert es, aber die Schrift ist blass und am besten schräg von der Seite lesbar. Für 5 V reicht es nicht, das Kabel an den Pin **5Vin** zu stecken: Dieser Pin ist auf dem Board nur ein Eingang. Er gibt erst Spannung aus, wenn die Lötbrücke **IN-OUT** auf der Platine geschlossen ist. Dann liegen auch SDA und SCL über die Widerstände des Adapters auf 5 V. Für den Dauerbetrieb ist deshalb ein Pegelwandler oder ein OLED-Display für 3,3 V die sauberere Lösung.
+
+Nach dem Anstecken des Displays muss das Board neu gestartet werden. Das Programm sucht das Display nur beim Start.
 
 Pin 4 ist frei. Diese Pins sind auf dem Board ungeeignet: 0, 3, 45, 46 (Boot-Pins), 19, 20 (USB), 35 bis 37 (PSRAM) und 48 (RGB-LED).
 
