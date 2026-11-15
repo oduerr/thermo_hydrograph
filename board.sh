@@ -26,6 +26,7 @@ uhr_setzen() {
 
 case "${1:-}" in
   aufspielen)
+    $MP fs cp lcd.py :lcd.py
     $MP fs cp main.py :main.py
     [ -f secrets.py ] && $MP fs cp secrets.py :secrets.py
     uhr_setzen

@@ -7,6 +7,7 @@ Misst ein Jahr lang jede Stunde Temperatur und Luftfeuchtigkeit, zum Beispiel in
 - ESP32-S3-N16R8 Dev-Board (16 MB Flash) mit MicroPython 1.19.1
 - Sensor AOSONG AM2302 (= DHT22)
 - Widerstand 4,7 kΩ bis 10 kΩ (Pull-up)
+- optional: LCD 16 × 2 mit I²C-Adapter (PCF8574T, Adresse 0x27)
 - USB-Netzteil für den Dauerbetrieb
 
 ## Verkabelung
@@ -22,6 +23,17 @@ Sensor mit dem Gitter nach vorne, Beine nach unten, Beine von links nach rechts:
 
 Der Widerstand kommt zwischen Bein 1 (VCC) und Bein 2 (DATA).
 
+Display (optional):
+
+| Display | ESP32-S3 |
+|---|---|
+| GND | GND |
+| VCC | 3V3 |
+| SDA | GPIO 8 |
+| SCL | GPIO 9 |
+
+Ist die Schrift nicht zu sehen, den Kontrast am blauen Drehregler des Adapters einstellen.
+
 Pin 4 ist frei. Diese Pins sind auf dem Board ungeeignet: 0, 3, 45, 46 (Boot-Pins), 19, 20 (USB), 35 bis 37 (PSRAM) und 48 (RGB-LED).
 
 ## Software
@@ -32,6 +44,7 @@ Pin 4 ist frei. Diese Pins sind auf dem Board ungeeignet: 0, 3, 45, 46 (Boot-Pin
 - Jede Messung ist eine Zeile in `/messdaten.csv`:
   `zeit_utc,laufzeit_min,temperatur_c,luftfeuchte_pct`
 - Jeder Neustart erzeugt eine Zeile `# Neustart …`.
+- Alle 5 Sekunden zeigt das Display den aktuellen Wert, die Ortszeit (MEZ/MESZ) und die Zahl der gespeicherten Messungen. Ohne Display läuft das Programm genauso.
 - Die LED blinkt kurz blau beim Start, grün nach jeder Messung und rot bei einem Messfehler.
 
 Speicherbedarf: etwa 45 Byte pro Messung, also rund 400 KB pro Jahr. Frei sind etwa 6 MB.
