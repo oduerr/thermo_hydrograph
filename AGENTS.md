@@ -40,5 +40,6 @@ Hinweise für KI-Agenten, die an diesem Projekt arbeiten. Was das Projekt tut un
 
 ## Daten
 
-- `messdaten.csv` auf dem Board. Zeit in UTC, Spalte `laufzeit_min` zur Rekonstruktion, wenn die Zeit unbekannt ist. Zeilen mit `#` sind Ereignisse: Neustart, Uhr gestellt.
+- `messdaten.csv` auf dem Board. Zeit in UTC, Spalte `laufzeit_min` zur Rekonstruktion, wenn die Zeit unbekannt ist. Zeilen mit `#` sind Ereignisse: Neustart, Uhr gestellt, Fehler.
+- Laufzeiten nie als `ticks_diff` gegen einen festen Startwert rechnen: `ticks_ms()` läuft nach 12,4 Tagen über. `laufzeit_min()` in `main.py` summiert deshalb auf.
 - Ausgelesene Daten landen lokal in `daten/`. Das ist keine Testablage. Testdaten nicht committen.

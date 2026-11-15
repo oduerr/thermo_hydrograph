@@ -87,6 +87,22 @@ def ortszeit():
     return "%02d:%02d" % (h, mi)
 
 
+# time.ticks_ms() springt nach 2^30 ms (12,4 Tage) auf 0 zurueck, und
+# ticks_diff() stimmt nur fuer Abstaende bis 6,2 Tage. Die Laufzeit wird
+# deshalb in kleinen Schritten aufsummiert statt gegen den Startwert gerechnet.
+_lz_ms = 0
+_lz_ticks = time.ticks_ms()
+
+
+def laufzeit_min():
+    """Minuten seit dem Start. Muss mindestens alle paar Tage aufgerufen werden."""
+    global _lz_ms, _lz_ticks
+    jetzt = time.ticks_ms()
+    _lz_ms += time.ticks_diff(jetzt, _lz_ticks)
+    _lz_ticks = jetzt
+    return _lz_ms // 60000
+
+
 def web_starten():
     """Startet Hotspot und Webserver, wenn secrets.py vorhanden ist."""
     try:
@@ -108,14 +124,17 @@ def uhr_gestellt(alt):
     vorher = "unbekannt"
     if alt >= 757382400:                    # 2024-01-01 in MicroPython-Zeit
         vorher = "%04d-%02d-%02dT%02d:%02d:%02dZ" % time.localtime(alt)[:6]
-    zeile_schreiben("# Uhr vom Handy gestellt %s (vorher %s)" % (zeitstempel(), vorher))
+    # Mit Laufzeit: so ist die Zeile ein Anker, um Zeilen mit "unbekannt"
+    # nachtraeglich zu datieren.
+    zeile_schreiben("# Uhr vom Handy gestellt %s (vorher %s) laufzeit_min %d"
+                    % (zeitstempel(), vorher, laufzeit_min()))
 
 
 def web_status():
     w = _letzter
     return {"t": w[0] if w else None, "f": w[1] if w else None,
             "anzahl": anzahl, "zeit": zeitstempel(),
-            "laufzeit_min": time.ticks_diff(time.ticks_ms(), _start) // 60000}
+            "laufzeit_min": laufzeit_min()}
 
 
 def einzelmessung():
@@ -159,17 +178,17 @@ def zeile_schreiben(text):
         f.write(text + "\n")
 
 
-def speichern(start):
+def speichern():
     global anzahl
-    laufzeit_min = time.ticks_diff(time.ticks_ms(), start) // 60000
+    lz = laufzeit_min()
     wert = messen()
     if wert is None:
-        zeile_schreiben("%s,%d,," % (zeitstempel(), laufzeit_min))
+        zeile_schreiben("%s,%d,," % (zeitstempel(), lz))
         print(zeitstempel(), "Messfehler")
         blink((40, 0, 0))                    # rot: Messfehler
     else:
         t, rh = wert
-        zeile_schreiben("%s,%d,%.1f,%.1f" % (zeitstempel(), laufzeit_min, t, rh))
+        zeile_schreiben("%s,%d,%.1f,%.1f" % (zeitstempel(), lz, t, rh))
         print(zeitstempel(), "T=%.1f C  RH=%.1f %%" % (t, rh))
         blink((0, 40, 0))                    # gruen: Messung ok
     anzahl += 1
@@ -195,21 +214,17 @@ def anzeige_aktualisieren(wert):
     anzeigen(zeile1, "%s   Nr.%5d" % (ortszeit(), anzahl))
 
 
-_start = time.ticks_ms()
-
-
 def main():
     anzeigen("Thermo-Hygro", "startet ...")
     datei_vorbereiten()
     blink((0, 0, 40), 500)                   # blau: Start
     server = web_starten()
     zeile_schreiben("# Neustart %s" % zeitstempel())
-    start = _start
-    naechste = start
+    naechste = time.ticks_ms()
     while True:
         # Takt ueber die interne Laufzeit, damit ein Uhr-Nachstellen nicht stoert
         if time.ticks_diff(naechste, time.ticks_ms()) <= 0:
-            anzeige_aktualisieren(speichern(start))
+            anzeige_aktualisieren(speichern())
             naechste = time.ticks_add(naechste, INTERVALL_S * 1000)
         else:
             anzeige_aktualisieren(einzelmessung())
@@ -219,4 +234,19 @@ def main():
             time.sleep(ANZEIGE_S)
 
 
-main()
+# Auffangnetz fuer den Dauerbetrieb: Ein unerwarteter Fehler wuerde das
+# Programm beenden, und das Geraet wuerde unbemerkt nicht mehr messen.
+# Stattdessen Fehler in die CSV schreiben und neu starten. Die Pause begrenzt
+# die Zahl der Zeilen, falls der Fehler bei jedem Start wieder auftritt.
+# Ctrl-C (mpremote) ist keine Exception und beendet das Programm wie bisher.
+try:
+    main()
+except Exception as e:
+    print("Fehler:", repr(e))
+    try:
+        zeile_schreiben("# Fehler %s %s" % (zeitstempel(), repr(e)))
+    except Exception:
+        pass
+    anzeigen("Fehler!", "Neustart in 60s")
+    time.sleep(60)
+    machine.reset()

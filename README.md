@@ -38,7 +38,7 @@ Das Display ist eigentlich für 5 V gebaut. Mit 3,3 V funktioniert es, aber die 
 
 Nach dem Anstecken des Displays muss das Board neu gestartet werden. Das Programm sucht das Display nur beim Start.
 
-Pin 4 ist frei. Diese Pins sind auf dem Board ungeeignet: 0, 3, 45, 46 (Boot-Pins), 19, 20 (USB), 35 bis 37 (PSRAM) und 48 (RGB-LED).
+Diese Pins sind auf dem Board ungeeignet: 0, 3, 45, 46 (Boot-Pins), 19, 20 (USB), 35 bis 37 (PSRAM) und 48 (RGB-LED).
 
 ## Software
 
@@ -48,6 +48,7 @@ Pin 4 ist frei. Diese Pins sind auf dem Board ungeeignet: 0, 3, 45, 46 (Boot-Pin
 - Jede Messung ist eine Zeile in `/messdaten.csv`:
   `zeit_utc,laufzeit_min,temperatur_c,luftfeuchte_pct`
 - Jeder Neustart erzeugt eine Zeile `# Neustart …`.
+- Bei einem unerwarteten Programmfehler schreibt das Gerät eine Zeile `# Fehler …`, wartet eine Minute und startet sich selbst neu.
 - Alle 5 Sekunden zeigt das Display den aktuellen Wert, die Ortszeit (MEZ/MESZ) und die Zahl der gespeicherten Messungen. Ohne Display läuft das Programm genauso.
 - Die LED blinkt kurz blau beim Start, grün nach jeder Messung und rot bei einem Messfehler.
 
@@ -84,7 +85,7 @@ Das Board öffnet ein eigenes WLAN. Über das Handy kann man damit die Daten abr
 2. Das Handy mit dem WLAN verbinden. Die Meldung „Kein Internet“ mit „Verbunden bleiben“ bestätigen.
 3. Im Browser `http://192.168.4.1` öffnen.
 
-Die Seite zeigt die aktuellen Werte und den Verlauf und bietet die CSV zum Herunterladen an. Beim Öffnen schickt das Handy seine Uhrzeit mit. Weicht die Uhr des Boards um mehr als 30 Sekunden ab, wird sie gestellt. In der CSV steht dann die Zeile `# Uhr vom Handy gestellt …`. Nach einem Stromausfall reicht deshalb ein Besuch mit dem Handy, und die Uhr stimmt wieder.
+Die Seite zeigt die aktuellen Werte und den Verlauf und bietet die CSV zum Herunterladen an. Beim Öffnen schickt das Handy seine Uhrzeit mit. Weicht die Uhr des Boards um mehr als 30 Sekunden ab, wird sie gestellt. In der CSV steht dann die Zeile `# Uhr vom Handy gestellt …` mit der Laufzeit in Minuten. Nach einem Stromausfall reicht deshalb ein Besuch mit dem Handy, und die Uhr stimmt wieder.
 
 Die Reichweite im Gebäude liegt bei etwa 10 bis 30 m.
 
